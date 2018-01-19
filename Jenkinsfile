@@ -27,7 +27,7 @@ node("master") {
    stage("Create service or Update") {
       try {
          sh '''
-           // create service within swarm to easily locally scale
+           //create service within swarm to easily locally scale
 	   SERVICES=$(docker service ls --filter name=node-red --quiet | wc -l)
 	   if [[ $SERVICES -eq 0 ]]; then
 	      docker service create --network swarm-netW --name node-red -p 1880:1880 669791164395.dkr.ecr.us-east-1.amazonaws.com/node-red:latest
