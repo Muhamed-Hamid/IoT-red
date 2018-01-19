@@ -1,0 +1,8 @@
+[docker-nodes]
+node[0:6]
+
+[docker-swarm-manager]
+node[0:2]
+
+[docker-swarm-minions]
+node[3:6]

@@ -1,0 +1,36 @@
+{
+  "name": "node-red-contrib-cequens",
+  "version": "1.0.0",
+  "description": "This node let you send SMS via the cequens API",
+  "main": "cequens.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmedshabrawy/node-red-contrib-cequens.git"
+  },
+  "keywords": [
+    "node-red",
+    "sms",
+    "api"
+  ],
+  "node-red": {
+    "nodes": {
+      "cequens": "nodes/cequens.js",
+      "cequens-credentials": "nodes/cequens-credentials.js",
+      "cequens-auth": "nodes/cequens-auth.js",
+      "cequensSMPP": "nodes/cequens-smpp.js"
+    }
+  },
+  "author": "Ahmed Shabrawy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ahmedshabrawy/node-red-contrib-cequens/issues"
+  },
+  "homepage": "https://github.com/ahmedshabrawy/node-red-contrib-cequens#readme",
+  "dependencies": {
+    "node-red-contrib-os": "~0.1.7",
+    "request": "^2.83.0"
+  }
+}

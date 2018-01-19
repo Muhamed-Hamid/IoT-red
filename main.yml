@@ -1,0 +1,114 @@
+- hosts: docker-nodes
+  connection: local
+  become: true
+  vars:
+         docker_swarm_addr: "{{ hostvars[inventory_hostname]['ansible_' + docker_swarm_interface]['ipv4']['address'] }}"
+         docker_swarm_mang_ans_G: 'docker-swarm-managers'
+         docker_swarm_dispatch_HB: '5s'
+         docker_swarm_interface: 'docker0'
+         docker_swarm_task_hist_limit: 5
+         docker_swarm_networks:
+                 - name: 'swarm-netW'
+                   driver: 'overlay'
+                   state: 'present'
+                 - name: 'testing back'
+                   driver: 'overlay'
+                   state: 'absent'
+         docker_swarm_prim_mang: '{{ groups[docker_swarm_mang_ans_G][0] }}'
+         docker_swarm_minions_ans_G: 'docker-swarm-minions'
+         docker_swarm_port: "2377"
+  tasks:
+          - name: Check status
+            command: "docker info"
+            register: "docker_info"
+            changed_when: false
+
+          - name: Swarm-Init on First mang
+            command: >
+                    docker swarm init
+                    --listen-addr {{ docker_swarm_addr }}:{{ docker_swarm_port }}
+                    --advertise-addr {{ docker_swarm_addr }}
+            when: >
+                    'Swarm: inactive' in docker_info.stdout and
+                    inventory_hostname == docker_swarm_prim_mang
+
+          - name: Catch minion join token
+            command: "docker swarm join-token -q worker"
+            changed_when: false
+            register: "docker_swarm_minion_token"
+            when: >
+                    inventory_hostname == docker_swarm_prim_mang
+
+          - name: Catch Manager join token
+            command: "docker swarm join-token -q manager"
+            changed_when: false
+            register: "docker_swarm_manager_token"
+            when: >
+                    inventory_hostname == docker_swarm_prim_mang
+
+          - name: Define swarm manager address
+            set_fact:
+                    docker_swarm_manager_address: "{{ docker_swarm_addr }}:{{ docker_swarm_port }}"
+            changed_when: false
+            when: >
+                    inventory_hostname == docker_swarm_prim_mang
+
+          - name: Define swarm mang addr var
+            set_fact:
+                    docker_swarm_manager_address: "{{ hostvars[docker_swarm_prim_mang]['docker_swarm_manager_address'] }}"
+            changed_when: false
+            when: >
+                    inventory_hostname != docker_swarm_prim_mang
+
+          - name: Define swarm Manager join-token
+            set_fact:
+                    docker_swarm_manager_token: "{{ hostvars[docker_swarm_prim_mang]['docker_swarm_manager_token'] }}"
+            changed_when: false
+            when: >
+                    inventory_hostname != docker_swarm_prim_mang
+
+          - name: Define swarm minion join-token
+            set_fact:
+                    docker_swarm_minion_token: "{{ hostvars[docker_swarm_prim_mang]['docker_swarm_minion_token'] }}"
+            changed_when: false
+            when: >
+                    inventory_hostname != docker_swarm_prim_mang
+
+          - name: Join another Swarm manager to cluster
+            command: >
+                    docker swarm join
+                    --listen-addr {{ docker_swarm_addr }}:{{ docker_swarm_port }}
+                    --advertise-addr {{ docker_swarm_addr }}
+                    --token {{ docker_swarm_manager_token.stdout }}
+                    {{ docker_swarm_manager_address }}
+            when: >
+                    inventory_hostname != docker_swarm_prim_mang and 
+                    inventory_hostname not in groups[docker_swarm_minions_ans_G] and 
+                    'Swarm: active' not in docker_info.stdout and 
+                    'Swarm: pending' not in docker_info.stdout
+
+          - name: Joining minions to cluster
+            command: >
+                    docker swarm join
+                    --listen-addr {{ docker_swarm_addr }}:{{ docker_swarm_port }}
+                    --advertise-addr {{ docker_swarm_addr }}
+                    --token {{ docker_swarm_minion_token.stdout }}
+                    {{ docker_swarm_manager_address }}
+            when: >
+                    inventory_hostname in groups[docker_swarm_minions_ans_G] and 
+                    'Swarm: active' not in docker_info.stdout and 
+                    'Swarm: pending' not in docker_info.stdout
+
+          - name: Swarm Networks
+            docker_network:
+                    name: "{{ item.name }}"
+                    driver: "{{ item.driver }}"
+                    state: "{{ item.state }}"
+            with_items: '{{ docker_swarm_networks }}'
+            when: >
+                    inventory_hostname == docker_swarm_prim_mang
+
+          - name: Update dispathcer hearbeat
+            command: "docker swarm update --dispatcher-heartbeat {{ docker_swarm_dispatch_HB }}"
+            when: >
+                    inventory_hostname == docker_swarm_prim_mang
