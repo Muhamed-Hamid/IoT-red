@@ -1,4 +1,4 @@
-env.ECR = '669791164395.dkr.ecr.us-east-1.amazonaws.com'
+env.ECR = '{Your Registry endpoint}'
 
 node("master") {
    checkout scm
@@ -20,7 +20,7 @@ node("master") {
       sh "docker build -t ${ECR}/node-red:latest ."
    }
    stage("Pushing") {
-      docker.withRegistry('https://669791164395.dkr.ecr.us-east-1.amazonaws.com/node-red','ecr:us-east-1:ECR-cred') {
+      docker.withRegistry('https://amazonaws.com/node-red','ecr:us-east-1:ECR-cred') {
          docker.image('node-red').push('latest')
       }
    }
@@ -30,9 +30,9 @@ node("master") {
            #create service within swarm to easily scale
 	   SERVICES=$(docker service ls --filter name=node-red --quiet | wc -l)
 	   if [[ $SERVICES -eq 0 ]]; then
-	      docker service create --network swarm-netW --name node-red -p 1880:1880 669791164395.dkr.ecr.us-east-1.amazonaws.com/node-red:latest
+	      docker service create --network swarm-netW --name node-red -p 1880:1880 amazonaws.com/node-red:latest
 	   else 
-	      docker service update --image 669791164395.dkr.ecr.us-east-1.amazonaws.com/node-red:latest node-red
+	      docker service update --image amazonaws.com/node-red:latest node-red
 	      for i in `docker ps | awk 'NR > 1 {print $1}'`; do docker stop $i && docker start $i;done
 	   fi
 	    '''
@@ -42,5 +42,3 @@ node("master") {
      } 
    }
 }
-
-
